@@ -34,10 +34,10 @@ python main.py
 ## Структура проекта
 
 effective_mobile_testtask_cash/
-├── main.py             # Главный файл с функциональностью приложения
-├── records.txt         # Файл для хранения записей
-├── test_wallet.py # Модульные тесты для класса FinancialWallet
-└── README.md           # Файл с описанием проекта
+   - main.py - Главный файл с функциональностью приложения
+   - records.txt - Файл для хранения записей
+   - test_wallet.py - Модульные тесты для класса Wallet
+   - README.md - Файл с описанием проекта
 
 ## Тестирование
 
