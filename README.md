@@ -44,10 +44,6 @@ python test_wallet.py
 ## Структура проекта
 
 personal_wallet/
-   - main.py
-   - test_wallet.py
-   - README.md
-
 - main.py: Главный файл с кодом приложения.
 - test_wallet.py: Файл с тестами для приложения.
 - README.md: Этот файл с инструкциями.
