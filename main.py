@@ -112,8 +112,7 @@ class Wallet:
         self.save_records()
         print("Запись успешно обновлена.")
 
-
-def search_records(self) -> None:
+    def search_records(self) -> None:
         """
         Производит поиск записей по категории, дате или сумме.
         """
