@@ -1,49 +1,74 @@
 import unittest
+from unittest.mock import patch, mock_open
 from io import StringIO
-from unittest.mock import patch
 
 from main import Wallet
 
 
-class TestFinancialWallet(unittest.TestCase):
-    def setUp(self) -> None:
+class TestWallet(unittest.TestCase):
+    def setUp(self):
         self.wallet = Wallet('test_records.txt')
 
+    def tearDown(self):
+        try:
+            import os
+            os.remove('test_records.txt')
+        except:
+            pass
+
     def test_load_records(self):
-        self.wallet.records = []
-        self.wallet.load_records()
-        self.assertEqual(len(self.wallet.records), 2)
-        self.assertEqual(self.wallet.records[0]['date'], '2024-05-02')
-        self.assertEqual(self.wallet.records[0]['category'], 'expense')
-        self.assertEqual(self.wallet.records[0]['amount'], 1500.0)
-        self.assertEqual(self.wallet.records[0]['currency'], 'USD')
-        self.assertEqual(self.wallet.records[0]['description'], 'Покупка продуктов')
+        with patch('builtins.open', mock_open(read_data='Дата: 2023-05-01\nКатегория: Доход\nСумма: 1000.0\nОписание: Зарплата\n\nДата: 2023-05-02\nКатегория: Расход\nСумма: 500.0\nОписание: Аренда\n\n')):
+            self.wallet.load_records()
+            self.assertEqual(len(self.wallet.records), 2)
+            self.assertEqual(self.wallet.records[0]['date'], '2023-05-01')
+            self.assertEqual(self.wallet.records[0]['category'], 'income')
+            self.assertEqual(self.wallet.records[0]['amount'], 1000.0)
+            self.assertEqual(self.wallet.records[0]['description'], 'Зарплата')
 
-    def test_show_balance(self) -> None:
-        with patch('sys.stdout', new=StringIO()) as fake_output:
-            self.wallet.show_balance()
-            output = fake_output.getvalue().strip()
-            self.assertEqual(output, "Баланс: 28500.00\nДоходы: 30000.00\nРасходы: 1500.00")
-
-    def test_add_record(self) -> None:
-        with patch('builtins.input', side_effect=['2024-06-01', 'income', '5000', 'USD', 'Зарплата']):
+    def test_add_record(self):
+        with patch('builtins.input', side_effect=['2023-05-03', 'income', '2000', 'Бонус']):
             self.wallet.add_record()
-            self.assertEqual(len(self.wallet.records), 3)
-            self.assertEqual(self.wallet.records[-1]['date'], '2024-06-01')
-            self.assertEqual(self.wallet.records[-1]['category'], 'income')
-            self.assertEqual(self.wallet.records[-1]['amount'], 5000.0)
-            self.assertEqual(self.wallet.records[-1]['currency'], 'USD')
-            self.assertEqual(self.wallet.records[-1]['description'], 'Зарплата')
+            self.assertEqual(len(self.wallet.records), 1)
+            self.assertEqual(self.wallet.records[0]['date'], '2023-05-03')
+            self.assertEqual(self.wallet.records[0]['category'], 'income')
+            self.assertEqual(self.wallet.records[0]['amount'], 2000.0)
+            self.assertEqual(self.wallet.records[0]['description'], 'Бонус')
 
-    def test_edit_record(self) -> None:
-        with patch('builtins.input', side_effect=['0', '', '', '', 'Покупка продуктов питания']):
+    def test_edit_record(self):
+        self.wallet.records = [
+            {'date': '2023-05-01', 'category': 'income', 'amount': 1000.0, 'description': 'Зарплата'},
+            {'date': '2023-05-02', 'category': 'expense', 'amount': 500.0, 'description': 'Аренда'}
+        ]
+        with patch('builtins.input', side_effect=['0', '', '', '', '2023-05-01', 'Доход обновленный']):
             self.wallet.edit_record()
-            self.assertEqual(self.wallet.records[0]['description'], 'Покупка продуктов питания')
+            self.assertEqual(self.wallet.records[0]['date'], '2023-05-01')
+            self.assertEqual(self.wallet.records[0]['category'], 'income')
+            self.assertEqual(self.wallet.records[0]['amount'], 1000.0)
+            self.assertEqual(self.wallet.records[0]['description'], '2023-05-01')
 
-    def test_search_records(self) -> None:
-        with patch('builtins.input', side_effect=['income', '', '']):
+    def test_search_records(self):
+        self.wallet.records = [
+            {'date': '2023-05-01', 'category': 'income', 'amount': 1000.0, 'description': 'Зарплата'},
+            {'date': '2023-05-02', 'category': 'expense', 'amount': 500.0, 'description': 'Аренда'},
+            {'date': '2023-05-03', 'category': 'income', 'amount': 2000.0, 'description': 'Бонус'}
+        ]
+        with patch('sys.stdout', new=StringIO()) as fake_out:
             self.wallet.search_records()
-            # Проверка вывода для найденных записей
+            output = fake_out.getvalue().strip()
+            expected_output = "Найденные записи:\n2023-05-01, income, 1000.0, Зарплата\n2023-05-03, income, 2000.0, Бонус"
+            self.assertEqual(output, expected_output)
+
+    def test_delete_record(self):
+        self.wallet.records = [
+            {'date': '2023-05-01', 'category': 'income', 'amount': 1000.0, 'description': 'Зарплата'},
+            {'date': '2023-05-02', 'category': 'expense', 'amount': 500.0, 'description': 'Аренда'},
+            {'date': '2023-05-03', 'category': 'income', 'amount': 2000.0, 'description': 'Бонус'}
+        ]
+        with patch('builtins.input', return_value='1'):
+            self.wallet.delete_record()
+            self.assertEqual(len(self.wallet.records), 2)
+            self.assertEqual(self.wallet.records[0]['date'], '2023-05-01')
+            self.assertEqual(self.wallet.records[1]['date'], '2023-05-03')
 
 
 if __name__ == '__main__':

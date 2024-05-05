@@ -14,40 +14,38 @@ class Wallet:
         self.records = []
         self.load_records()
 
-    def load_records(self) -> None:
+    def load_records(self):
         """
-        Загружает записи из файла в список self.records.
+        Загружает записи из файла.
         """
         try:
-            with open(self.filename, 'r') as file:
-                for line in file:
-                    record = line.strip().split(',')
-                    if len(record) == 5:
-                        date, category, amount, currency, description = record
-                        self.records.append({
-                            'date': date,
-                            'category': category,
-                            'amount': float(amount),
-                            'currency': currency,
-                            'description': description
-                        })
+            with open(self.filename, 'r', encoding='utf-8') as file:
+                records = file.read().split('\n\n')
+                for record_str in records:
+                    if record_str.strip():
+                        record = {}
+                        lines = record_str.split('\n')
+                        if len(lines) == 4:  # Проверка длины списка строк
+                            record['date'] = lines[0].split(': ')[1]
+                            category = lines[1].split(': ')[1]
+                            record['category'] = 'income' if category == 'Доход' else 'expense'
+                            record['amount'] = float(lines[2].split(': ')[1])
+                            record['description'] = lines[3].split(': ')[1]
+                            self.records.append(record)
         except FileNotFoundError:
             print(f"Файл {self.filename} не найден. Будет создан новый файл.")
 
-    def save_records(self) -> None:
+    def save_records(self):
         """
-        Сохраняет записи из списка self.records в файл.
+        Сохраняет записи в файл.
         """
-        with open(self.filename, 'w') as file:
+        with open(self.filename, 'w', encoding='utf-8') as file:
             for record in self.records:
-                line = ','.join([
-                    record['date'],
-                    record['category'],
-                    str(record['amount']),
-                    record['currency'],
-                    record['description']
-                ])
-                file.write(line + '\n')
+                category = 'Расход' if record['category'] == 'expense' else 'Доход'
+                file.write(f"Дата: {record['date']}\n")
+                file.write(f"Категория: {category}\n")
+                file.write(f"Сумма: {record['amount']}\n")
+                file.write(f"Описание: {record['description']}\n\n")
 
     def show_balance(self) -> None:
         """
@@ -66,15 +64,15 @@ class Wallet:
         """
         date = input("Введите дату (ГГГГ-ММ-ДД): ")
         category = input("Введите категорию (income/expense): ")
+        while category not in ['income', 'expense']:  # Проверка корректности категории
+            category = input("Неверная категория. Введите income или expense: ")
         amount = float(input("Введите сумму: "))
-        currency = input("Введите валюту: ")
         description = input("Введите описание: ")
 
         record = {
             'date': date,
             'category': category,
             'amount': amount,
-            'currency': currency,
             'description': description
         }
 
@@ -93,9 +91,11 @@ class Wallet:
 
         record = self.records[index]
         date = input(f"Введите новую дату ({record['date']}) или нажмите Enter для пропуска: ")
+
         category = input(f"Введите новую категорию ({record['category']}) или нажмите Enter для пропуска: ")
+        while category not in ['income', 'expense', '']:  # Проверка корректности категории
+            category = input("Неверная категория. Введите income, expense или нажмите Enter для пропуска: ")
         amount = input(f"Введите новую сумму ({record['amount']}) или нажмите Enter для пропуска: ")
-        currency = input(f"Введите новую валюту ({record['currency']}) или нажмите Enter для пропуска: ")
         description = input(f"Введите новое описание ({record['description']}) или нажмите Enter для пропуска: ")
 
         if date:
@@ -104,8 +104,6 @@ class Wallet:
             record['category'] = category
         if amount:
             record['amount'] = float(amount)
-        if currency:
-            record['currency'] = currency
         if description:
             record['description'] = description
 
@@ -117,6 +115,8 @@ class Wallet:
         Производит поиск записей по категории, дате или сумме.
         """
         search_category = input("Введите категорию для поиска (income/expense) или нажмите Enter для пропуска: ")
+        while search_category not in ['income', 'expense', '']:  # Проверка корректности категории
+            search_category = input("Неверная категория. Введите income, expense или нажмите Enter для пропуска: ")
         search_date = input("Введите дату для поиска (ГГГГ-ММ-ДД) или нажмите Enter для пропуска: ")
         search_amount = input("Введите сумму для поиска или нажмите Enter для пропуска: ")
 
@@ -130,9 +130,22 @@ class Wallet:
         if matching_records:
             print("Найденные записи:")
             for record in matching_records:
-                print(f"{record['date']}, {record['category']}, {record['amount']}, {record['currency']}, {record['description']}")
+                print(f"{record['date']}, {record['category']}, {record['amount']}, {record['description']}")
         else:
             print("Записи не найдены.")
+
+    def delete_record(self) -> None:
+        """
+        Удаляет существующую запись.
+        """
+        index = int(input("Введите индекс записи для удаления: "))
+        if index < 0 or index >= len(self.records):
+            print("Неверный индекс записи.")
+            return
+
+        record = self.records.pop(index)
+        print(f"Запись '{record['date']}, {record['category']}, {record['amount']}, {record['description']}' удалена.")
+        self.save_records()
 
 
 def main() -> None:
@@ -147,22 +160,26 @@ def main() -> None:
         print("2. Добавление записи")
         print("3. Редактирование записи")
         print("4. Поиск по записям")
-        print("5. Выход")
+        print("5. Удаление записи")
+        print("6. Выход")
 
         choice = input("Введите номер действия: ")
 
-        if choice == '1':
-            wallet.show_balance()
-        elif choice == '2':
-            wallet.add_record()
-        elif choice == '3':
-            wallet.edit_record()
-        elif choice == '4':
-            wallet.search_records()
-        elif choice == '5':
-            break
-        else:
-            print("Неверный выбор. Попробуйте снова.")
+        match choice:
+            case '1':
+                wallet.show_balance()
+            case '2':
+                wallet.add_record()
+            case '3':
+                wallet.edit_record()
+            case '4':
+                wallet.search_records()
+            case '5':
+                wallet.delete_record()
+            case '6':
+                break
+            case _:
+                print("Неверный выбор. Попробуйте снова.")
 
 
 if __name__ == "__main__":
